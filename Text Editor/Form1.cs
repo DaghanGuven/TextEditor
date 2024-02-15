@@ -6,12 +6,13 @@ using System.Windows.Forms;
 using System.Drawing;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Text_Editor
 {
     public partial class Form1 : Form
     {
-        private const float RichTextBoxHeightPercentage = 0.941f; // Adjust this value as needed
+        private const float RichTextBoxHeightPercentage = 0.941f; // Adjust as needed
 
         public Form1()
         {
@@ -52,6 +53,8 @@ namespace Text_Editor
             Backcolor = new List<string>(Preferences.theme_Backcolor.Split(','));
 
             SetRichTextBox();
+
+            SetText();
         }
         List<string> Forecolor;
         List<string> Backcolor;
@@ -84,10 +87,90 @@ namespace Text_Editor
             }
             
         }
-
+        _File file = new _File();
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            switch (file.Path)
+            {
+                case "Unknown":
+                    openFileToolStripMenuItem_Click(1,e);
+                    break;
+                default:
+                    File.WriteAllText(file.Path, richTextBox1.Text);
+                    file.Saved = true;
+                    SetText();
+                    break;
+            }
+            
+        }
 
+        private void openFileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog openFileDialog1 = new OpenFileDialog();
+
+            openFileDialog1.InitialDirectory = "c:\\";
+            openFileDialog1.FilterIndex = 0;
+            openFileDialog1.RestoreDirectory = true;
+
+            if (openFileDialog1.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
+
+            file.Path = openFileDialog1.FileName;
+
+            richTextBox1.Text=File.ReadAllText(file.Path);
+            SetText();
+        }
+        private void SetText()=>Text = "Text Editor - " + file.Path.Split('\\').Reverse().First()+" - "+(file.Saved?"Saved":"Unsaved");
+
+        private void richTextBox1_TextChanged(object sender, EventArgs e)
+        {
+            file.Saved = false;
+            SetText();
+        }
+
+        private void richTextBox1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Control && e.KeyCode == Keys.S)
+                saveToolStripMenuItem_Click(1, e);
+            else if (e.Control && e.Shift && e.KeyCode == Keys.S)
+                saveAllToolStripMenuItem_Click(1, e);
+        }
+
+        private void saveAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            saveToolStripMenuItem_Click(1, e);
+        }
+
+        private void saveAsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Create an instance of the SaveFileDialog class
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+
+            // Set properties of the SaveFileDialog
+            saveFileDialog.Title = "Save As";
+            saveFileDialog.FilterIndex = 1;
+            saveFileDialog.RestoreDirectory = true;
+
+            DialogResult result = saveFileDialog.ShowDialog();
+
+            if (result == DialogResult.OK)
+            {
+                string filePath = saveFileDialog.FileName;
+                File.WriteAllText(filePath, richTextBox1.Text);
+                file.Saved = false;
+                file.Path = filePath;
+                SetText();
+                try
+                {
+                    
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("An error occurred while saving the file: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
     }
 }
